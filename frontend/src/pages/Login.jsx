@@ -74,7 +74,7 @@ const InputField = React.memo(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               tabIndex="-1"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -258,7 +258,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => navigate("/forgot-password")}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700"
+                className="text-xs cursor-pointer font-bold text-blue-600 hover:text-blue-700"
               >
                 Forgot Password?
               </button>
@@ -267,7 +267,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`flex items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white transition-all
+              className={`flex cursor-pointer items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white transition-all
                 ${
                   loading
                     ? "bg-blue-400 cursor-wait"
@@ -277,7 +277,7 @@ const Login = () => {
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
-                "Sign In"
+                "Log In"
               )}
             </button>
           </form>
@@ -287,7 +287,7 @@ const Login = () => {
               New to the platform?{" "}
               <button
                 onClick={() => navigate("/signup")}
-                className="text-blue-600 font-bold hover:text-blue-700"
+                className="text-blue-600 cursor-pointer font-bold hover:text-blue-700"
               >
                 Create Account
               </button>

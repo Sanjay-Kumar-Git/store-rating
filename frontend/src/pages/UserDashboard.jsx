@@ -181,7 +181,7 @@ const StoreCard = ({ store, userRating, onRate }) => {
               key={num}
               onMouseEnter={() => setHover(num)}
               onClick={() => onRate(store.id, num)}
-              className="p-1 transition-transform active:scale-90"
+              className="p-1 cursor-pointer transition-transform active:scale-90"
             >
               <Star
                 size={22}

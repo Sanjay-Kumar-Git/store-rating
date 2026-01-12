@@ -166,7 +166,7 @@ const fetchUserDetails = async (id) => {
           <QuickStat label="Privilege" value="Super Admin" icon={<ShieldCheck size={20} className="text-emerald-500" />} />
           <button 
             onClick={handleGenerateReport}
-            className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm hover:bg-slate-50 transition-colors group"
+            className="bg-white p-5 cursor-pointer rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm hover:bg-slate-50 transition-colors group"
           >
             <div className="p-3 bg-blue-50 rounded-xl group-hover:bg-blue-100"><Download size={20} className="text-blue-600" /></div>
             <div className="text-left">
@@ -186,7 +186,7 @@ const fetchUserDetails = async (id) => {
                 <h2 className="font-black text-xl text-slate-800 tracking-tight capitalize">{activeTab}</h2>
                 <button 
                   onClick={() => activeTab === "users" ? setShowCreateUser(true) : setShowCreateStore(true)}
-                  className="p-2 text-white bg-slate-900 rounded-xl hover:scale-105 transition-transform px-4 text-xs font-bold"
+                  className="p-2 text-white cursor-pointer bg-slate-900 rounded-xl hover:scale-105 transition-transform px-4 text-xs font-bold"
                 >
                   NEW +
                 </button>
@@ -194,7 +194,7 @@ const fetchUserDetails = async (id) => {
 
               <div className="flex p-1 bg-slate-100 rounded-xl">
                 {['users', 'stores'].map((tab) => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === tab ? "bg-white shadow-sm text-blue-600" : "text-slate-500"}`}>
+                  <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 cursor-pointer py-2 text-sm font-bold rounded-lg transition-all ${activeTab === tab ? "bg-white shadow-sm text-blue-600" : "text-slate-500"}`}>
                     {tab}
                   </button>
                 ))}
@@ -274,7 +274,7 @@ const fetchUserDetails = async (id) => {
                   {activeTab === "users" && (
                     <button
                       onClick={() => setShowChangeRole(true)}
-                      className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                      className="flex cursor-pointer items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                     >
                       <Shield size={18} />
                       Manage User Role
@@ -284,7 +284,7 @@ const fetchUserDetails = async (id) => {
                   <button 
                     onClick={handleDelete}
                     disabled={actionLoading}
-                    className="flex items-center gap-2 px-8 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                    className="flex cursor-pointer items-center gap-2 px-8 py-4 bg-red-50 text-red-600 rounded-2xl font-bold hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
                   >
                     <Trash2 size={18} />
                     Delete Record
@@ -292,7 +292,7 @@ const fetchUserDetails = async (id) => {
 
                   <button 
                     onClick={handleGenerateReport}
-                    className="flex items-center gap-2 px-8 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                    className="flex cursor-pointer items-center gap-2 px-8 py-4 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
                   >
                     <Download size={18} />
                     Report

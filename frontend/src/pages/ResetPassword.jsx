@@ -39,7 +39,7 @@ const InputField = React.memo(({ label, name, type, placeholder, value, onChange
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
             tabIndex="-1"
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -178,7 +178,7 @@ const ResetPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`group relative flex items-center justify-center gap-2 w-full py-4 mt-4 rounded-2xl font-bold text-white transition-all duration-300
+              className={`group cursor-pointer relative flex items-center justify-center gap-2 w-full py-4 mt-4 rounded-2xl font-bold text-white transition-all duration-300
                 ${loading 
                   ? 'bg-blue-400 cursor-wait' 
                   : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-xl shadow-blue-600/20'}

@@ -279,7 +279,7 @@ const Signup = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`flex items-center justify-center gap-2 w-full py-4 mt-4 rounded-2xl font-bold text-white transition-all
+              className={`flex items-center cursor-pointer justify-center gap-2 w-full py-4 mt-4 rounded-2xl font-bold text-white transition-all
                 ${
                   loading
                     ? "bg-blue-400 cursor-wait"
@@ -299,7 +299,7 @@ const Signup = () => {
               Already have an account?{" "}
               <button
                 onClick={() => navigate("/login")}
-                className="text-blue-600 font-bold hover:text-blue-700"
+                className="text-blue-600 cursor-pointer font-bold hover:text-blue-700"
               >
                 Log In
               </button>
