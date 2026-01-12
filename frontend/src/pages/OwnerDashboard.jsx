@@ -2,34 +2,53 @@ import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { API_BASE } from "@/utils/api";
-import { 
-  Store, 
-  Star, 
-  Loader2, 
-  AlertCircle, 
-  Users, 
-  TrendingUp, 
-  MapPin 
+import {
+  Store,
+  Star,
+  Loader2,
+  AlertCircle,
+  Users,
+  TrendingUp,
+  MapPin,
 } from "lucide-react";
 
+/**
+ * OwnerDashboard
+ * ------------------------------------------------
+ * Displays analytics for store owners:
+ * - Store details
+ * - Average rating
+ * - Customer ratings list
+ */
 const OwnerDashboard = () => {
   const token = Cookies.get("token");
 
-  const [data, setData] = useState(null);
+  /* ---------------- STATE ---------------- */
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  /* ---------------- FETCH DASHBOARD DATA ---------------- */
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/owner/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await fetch(
+          `${API_BASE}/api/owner/dashboard`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.message || "Failed to fetch dashboard");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to load owner dashboard"
+          );
+        }
 
-        setData(result);
+        setDashboardData(data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -40,110 +59,149 @@ const OwnerDashboard = () => {
     if (token) fetchDashboard();
   }, [token]);
 
+  /* ---------------- LOADING STATE ---------------- */
   if (loading) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center py-40">
-          <Loader2 className="animate-spin text-indigo-600 mb-4" size={48} />
-          <p className="text-slate-500 font-medium animate-pulse">Loading analytics...</p>
+          <Loader2
+            size={48}
+            className="mb-4 animate-spin text-indigo-600"
+          />
+          <p className="animate-pulse font-medium text-slate-500">
+            Loading analytics...
+          </p>
         </div>
       </DashboardLayout>
     );
   }
 
+  /* ---------------- ERROR STATE ---------------- */
   if (error) {
     return (
       <DashboardLayout>
-        <div className="max-w-md mx-auto mt-20 p-8 bg-red-50 rounded-3xl border border-red-100 text-center">
-          <AlertCircle className="mx-auto text-red-500 mb-4" size={48} />
-          <h2 className="text-red-900 font-black text-xl mb-2">System Error</h2>
-          <p className="text-red-700 font-medium">{error}</p>
+        <div className="mx-auto mt-20 max-w-md rounded-3xl border border-red-100 bg-red-50 p-8 text-center">
+          <AlertCircle
+            size={48}
+            className="mx-auto mb-4 text-red-500"
+          />
+          <h2 className="mb-2 text-xl font-black text-red-900">
+            System Error
+          </h2>
+          <p className="font-medium text-red-700">{error}</p>
         </div>
       </DashboardLayout>
     );
   }
 
+  /* ---------------- UI ---------------- */
   return (
     <DashboardLayout>
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        {/* HEADER SECTION */}
+      <div className="mx-auto max-w-5xl px-6 py-10">
+
+        {/* HEADER */}
         <header className="mb-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-2xl bg-indigo-600 p-3 text-white shadow-lg shadow-indigo-200">
               <Store size={28} />
             </div>
+
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{data.store.name}</h1>
-              <div className="flex items-center gap-1 text-slate-500 text-sm">
+              <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                {dashboardData.store.name}
+              </h1>
+              <div className="flex items-center gap-1 text-sm text-slate-500">
                 <MapPin size={14} />
-                <span>{data.store.address}</span>
+                <span>{dashboardData.store.address}</span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* STATS OVERVIEW */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <StatCard 
-            label="Average Rating" 
-            value={data.averageRating.toFixed(1)} 
-            icon={<Star className="fill-amber-400 text-amber-400" />}
+        {/* STATISTICS */}
+        <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <StatCard
+            label="Average Rating"
+            value={dashboardData.averageRating.toFixed(1)}
             suffix="/ 5.0"
+            icon={<Star className="fill-amber-400 text-amber-400" />}
           />
-          <StatCard 
-            label="Total Reviews" 
-            value={data.ratings.length} 
+
+          <StatCard
+            label="Total Reviews"
+            value={dashboardData.ratings.length}
             icon={<Users className="text-blue-500" />}
           />
-          <StatCard 
-            label="Store Status" 
-            value="Active" 
+
+          <StatCard
+            label="Store Status"
+            value="Active"
             icon={<TrendingUp className="text-emerald-500" />}
           />
         </div>
 
-        {/* RATINGS TABLE/LIST */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-            <h2 className="text-xl font-black text-slate-800">Recent Ratings</h2>
-            <span className="px-3 py-1 bg-white border rounded-full text-xs font-bold text-slate-500">
-              {data.ratings.length} Total
+        {/* RATINGS LIST */}
+        <div className="overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white shadow-xl shadow-slate-200/50">
+          
+          {/* TABLE HEADER */}
+          <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 px-8 py-6">
+            <h2 className="text-xl font-black text-slate-800">
+              Recent Ratings
+            </h2>
+            <span className="rounded-full border bg-white px-3 py-1 text-xs font-bold text-slate-500">
+              {dashboardData.ratings.length} Total
             </span>
           </div>
 
+          {/* TABLE BODY */}
           <div className="p-4">
-            {data.ratings.length === 0 ? (
+            {dashboardData.ratings.length === 0 ? (
               <div className="py-20 text-center">
-                <p className="text-slate-400 font-medium italic">No customer feedback yet.</p>
+                <p className="italic font-medium text-slate-400">
+                  No customer feedback yet.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
-                {data.ratings.map((r, i) => (
-                  <div 
-                    key={i} 
-                    className="flex justify-between items-center p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
+                {dashboardData.ratings.map((rating, index) => (
+                  <div
+                    key={index}
+                    className="group flex items-center justify-between rounded-2xl p-4 transition-colors hover:bg-slate-50"
                   >
+                    {/* USER */}
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 transition-colors">
-                        {r.userName.charAt(0)}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 font-bold text-slate-600 transition-colors group-hover:bg-indigo-100 group-hover:text-indigo-600">
+                        {rating.userName.charAt(0)}
                       </div>
+
                       <div>
-                        <p className="font-bold text-slate-800">{r.userName}</p>
-                        <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">Verified Customer</p>
+                        <p className="font-bold text-slate-800">
+                          {rating.userName}
+                        </p>
+                        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                          Verified Customer
+                        </p>
                       </div>
                     </div>
-                    
+
+                    {/* STARS */}
                     <div className="flex items-center gap-2">
                       <div className="flex gap-1">
                         {[...Array(5)].map((_, starIndex) => (
-                          <Star 
-                            key={starIndex} 
-                            size={14} 
-                            className={`${starIndex < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`}
+                          <Star
+                            key={starIndex}
+                            size={14}
+                            className={
+                              starIndex < rating.rating
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-slate-200"
+                            }
                           />
                         ))}
                       </div>
-                      <span className="ml-2 font-black text-slate-900 text-lg">{r.rating}</span>
+                      <span className="ml-2 text-lg font-black text-slate-900">
+                        {rating.rating}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -156,19 +214,27 @@ const OwnerDashboard = () => {
   );
 };
 
-/* ---------------- HELPER COMPONENTS ---------------- */
-
+/* ======================================================
+   HELPER COMPONENTS
+====================================================== */
 const StatCard = ({ label, value, icon, suffix = "" }) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-    <div className="flex items-center gap-3 mb-4">
-      <div className="p-2 bg-slate-50 rounded-xl group-hover:bg-white transition-colors">
-        {icon}
-      </div>
-      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+  <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+    <div className="mb-4 flex items-center gap-3">
+      <div className="rounded-xl bg-slate-50 p-2">{icon}</div>
+      <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
+        {label}
+      </span>
     </div>
+
     <div className="flex items-baseline gap-1">
-      <span className="text-3xl font-black text-slate-900">{value}</span>
-      {suffix && <span className="text-slate-400 font-bold text-sm">{suffix}</span>}
+      <span className="text-3xl font-black text-slate-900">
+        {value}
+      </span>
+      {suffix && (
+        <span className="text-sm font-bold text-slate-400">
+          {suffix}
+        </span>
+      )}
     </div>
   </div>
 );

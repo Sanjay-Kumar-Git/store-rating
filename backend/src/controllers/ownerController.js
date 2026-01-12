@@ -1,24 +1,29 @@
 /**
  * ownerController.js
- * ------------------
+ * ------------------------------------------------
  * Handles owner-only operations:
  * - View owned store details
- * - View ratings and average rating for the store
+ * - View ratings submitted by users
+ * - View average rating of the store
  */
 
 const db = require("../config/db");
 
+/* ======================================================
+   OWNER DASHBOARD
+====================================================== */
 /**
- * Get owner dashboard
  * Returns:
- * - Store details
- * - Average rating
+ * - Store details owned by the logged-in owner
+ * - Average rating of the store
  * - List of user ratings
  */
 exports.getOwnerDashboard = (req, res) => {
   const ownerId = req.user.id;
 
-  // 1. Get store owned by this owner
+  /* -----------------------------------------------
+     1. Fetch store owned by the owner
+  ------------------------------------------------ */
   const storeQuery = `
     SELECT id, name, address
     FROM stores
@@ -31,10 +36,14 @@ exports.getOwnerDashboard = (req, res) => {
     }
 
     if (!store) {
-      return res.status(404).json({ message: "No store found for this owner" });
+      return res
+        .status(404)
+        .json({ message: "No store found for this owner" });
     }
 
-    // 2. Get ratings + usernames
+    /* -----------------------------------------------
+       2. Fetch ratings with user names
+    ------------------------------------------------ */
     const ratingsQuery = `
       SELECT 
         u.name AS userName,
@@ -50,25 +59,28 @@ exports.getOwnerDashboard = (req, res) => {
         return res.status(500).json({ message: "Failed to fetch ratings" });
       }
 
-      // 3. Get average rating
-      const avgQuery = `
+      /* -----------------------------------------------
+         3. Calculate average rating
+      ------------------------------------------------ */
+      const averageQuery = `
         SELECT ROUND(AVG(rating), 1) AS averageRating
         FROM ratings
         WHERE store_id = ?
       `;
 
-      db.get(avgQuery, [store.id], (err, avg) => {
+      db.get(averageQuery, [store.id], (err, result) => {
         if (err) {
-          return res.status(500).json({ message: "Failed to calculate average rating" });
+          return res
+            .status(500)
+            .json({ message: "Failed to calculate average rating" });
         }
 
         res.json({
           store,
-          averageRating: avg.averageRating || 0,
+          averageRating: result?.averageRating || 0,
           ratings
         });
       });
     });
   });
 };
-

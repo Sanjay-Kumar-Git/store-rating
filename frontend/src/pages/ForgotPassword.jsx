@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { API_BASE } from "../utils/api";
 
-/**
- * Reusable Input Component (Memoized)
- */
+/* ======================================================
+   REUSABLE INPUT FIELD (MEMOIZED)
+====================================================== */
 const InputField = React.memo(
   ({
     label,
@@ -26,20 +26,20 @@ const InputField = React.memo(
     touched,
     icon: Icon,
   }) => {
-    const hasError = error && touched;
+    const hasError = Boolean(error && touched);
 
     return (
-      <div className="flex flex-col space-y-1.5 w-full">
+      <div className="flex w-full flex-col space-y-1.5">
         <label
           htmlFor={name}
-          className="text-[11px] font-bold uppercase tracking-widest text-gray-400 ml-1"
+          className="ml-1 text-[11px] font-bold uppercase tracking-widest text-gray-400"
         >
           {label}
         </label>
 
-        <div className="relative group">
+        <div className="group relative">
           <div
-            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
+            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors ${
               hasError
                 ? "text-red-400"
                 : "text-gray-400 group-focus-within:text-blue-600"
@@ -56,7 +56,7 @@ const InputField = React.memo(
             value={value}
             onChange={onChange}
             onBlur={onBlur}
-            className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-all duration-200 outline-none font-medium
+            className={`w-full rounded-xl border py-3 pl-10 pr-4 font-medium outline-none transition-all
               ${
                 hasError
                   ? "border-red-500 bg-red-50/50 focus:ring-4 focus:ring-red-500/10"
@@ -66,10 +66,11 @@ const InputField = React.memo(
           />
         </div>
 
-        <div className="min-h-[1.25rem] ml-1">
+        <div className="ml-1 min-h-[1.25rem]">
           {hasError && (
-            <span className="text-xs text-red-500 font-medium flex items-center gap-1 animate-in fade-in slide-in-from-top-1">
-              <AlertCircle size={12} /> {error}
+            <span className="flex items-center gap-1 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1">
+              <AlertCircle size={12} />
+              {error}
             </span>
           )}
         </div>
@@ -80,6 +81,9 @@ const InputField = React.memo(
 
 InputField.displayName = "InputField";
 
+/* ======================================================
+   FORGOT PASSWORD PAGE
+====================================================== */
 const ForgotPassword = () => {
   const navigate = useNavigate();
 
@@ -87,33 +91,43 @@ const ForgotPassword = () => {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [token, setToken] = useState("");
+  const [resetToken, setResetToken] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const validate = (val) =>
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)
-      ? "Enter a valid email address"
-      : "";
+  /* ======================================================
+     VALIDATION
+  ====================================================== */
+  const validateEmail = (value) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+      ? ""
+      : "Enter a valid email address";
 
+  /* ======================================================
+     HANDLERS
+  ====================================================== */
   const handleBlur = () => {
     setTouched(true);
-    setError(validate(email));
+    setError(validateEmail(email));
   };
 
   const handleChange = (e) => {
-    setEmail(e.target.value);
-    if (touched) setError(validate(e.target.value));
+    const value = e.target.value;
+    setEmail(value);
+
+    if (touched) {
+      setError(validateEmail(value));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
-    setToken("");
+    setResetToken("");
 
-    const emailError = validate(email);
-    if (emailError) {
-      setError(emailError);
+    const validationError = validateEmail(email);
+    if (validationError) {
+      setError(validationError);
       setTouched(true);
       return;
     }
@@ -121,19 +135,22 @@ const ForgotPassword = () => {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const response = await fetch(
+        `${API_BASE}/api/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to process request.");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to process request");
       }
 
-      setMessage("Reset token generated successfully!");
-      setToken(data.resetToken);
+      setMessage("Reset token generated successfully");
+      setResetToken(data.resetToken);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -141,44 +158,47 @@ const ForgotPassword = () => {
     }
   };
 
-  // ✅ Navigate to reset page with token
+  // Navigate to reset page with token (test mode)
   const handleResetNavigate = useCallback(() => {
-    if (token) {
-      navigate(`/reset-password?token=${token}`);
+    if (resetToken) {
+      navigate(`/reset-password?token=${resetToken}`);
     }
-  }, [token, navigate]);
+  }, [resetToken, navigate]);
 
+  /* ======================================================
+     UI
+  ====================================================== */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-white p-10 rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-gray-100">
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-10 shadow-2xl shadow-blue-900/5">
+
           {/* HEADER */}
-          <header className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl mb-4">
+          <header className="mb-8 text-center">
+            <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
               <KeyRound size={28} />
             </div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-2">
+            <h1 className="mb-2 text-3xl font-black tracking-tight text-gray-900">
               Forgot Password?
             </h1>
-            <p className="text-gray-500 font-medium px-4">
-              Enter your email and we&apos;ll provide a token to reset your
-              password.
+            <p className="px-4 font-medium text-gray-500">
+              Enter your email and we’ll generate a reset token.
             </p>
           </header>
 
-          {/* SUCCESS */}
+          {/* SUCCESS MESSAGE */}
           {message && (
-            <div className="flex items-center gap-3 bg-green-50 border border-green-100 text-green-700 p-4 mb-6 rounded-2xl text-sm font-semibold">
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm font-semibold text-green-700">
               <CheckCircle2 size={20} />
-              <p>{message}</p>
+              {message}
             </div>
           )}
 
-          {/* ERROR */}
+          {/* ERROR MESSAGE */}
           {error && (
-            <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-600 p-4 mb-6 rounded-2xl text-sm font-semibold">
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-600">
               <AlertCircle size={20} />
-              <p>{error}</p>
+              {error}
             </div>
           )}
 
@@ -200,39 +220,37 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`flex items-center cursor-pointer justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white transition-all
+              className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white transition-all
                 ${
                   loading
-                    ? "bg-blue-400 cursor-wait"
-                    : "bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-xl shadow-blue-600/20"
+                    ? "cursor-wait bg-blue-400"
+                    : "bg-blue-600 shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.97]"
                 }
               `}
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={20} />
+                <Loader2 size={20} className="animate-spin" />
               ) : (
                 "Get Reset Token"
               )}
             </button>
           </form>
 
-          {/* TOKEN + RESET BUTTON */}
-          {token && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-300 space-y-4">
+          {/* RESET TOKEN (TEST MODE) */}
+          {resetToken && (
+            <div className="mt-6 space-y-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                  Test Mode: Copy the Token and click Reset
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Test Mode
                 </p>
-                <code className="text-xs text-blue-700 break-all font-mono bg-white p-2 rounded-lg border block">
-                  {token}
+                <code className="block break-all rounded-lg border bg-white p-2 font-mono text-xs text-blue-700">
+                  {resetToken}
                 </code>
               </div>
 
               <button
                 onClick={handleResetNavigate}
-                className="flex cursor-pointer items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white
-                  bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97]
-                  transition-all shadow-lg shadow-emerald-600/20"
+                className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-bold text-white transition-all hover:bg-emerald-700 active:scale-[0.97] shadow-lg shadow-emerald-600/20"
               >
                 <KeyRound size={18} />
                 Reset Password
@@ -241,10 +259,10 @@ const ForgotPassword = () => {
           )}
 
           {/* FOOTER */}
-          <footer className="mt-8 pt-6 border-t border-gray-50 text-center">
+          <footer className="mt-8 border-t border-gray-50 pt-6 text-center">
             <button
               onClick={() => navigate("/login")}
-              className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-500 font-bold hover:text-blue-600 transition-colors"
+              className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-gray-500 transition-colors hover:text-blue-600"
             >
               <ArrowLeft size={16} />
               Back to Login

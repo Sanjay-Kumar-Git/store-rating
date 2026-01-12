@@ -1,9 +1,11 @@
 /**
  * adminRoutes.js
- * --------------
- * Admin-only routes:
- * - Create users (user / owner)
- * - Create stores and assign owners
+ * ------------------------------------------------
+ * Admin-only routes for managing:
+ * - Users (create, view, delete, role change)
+ * - Stores (create, view, delete)
+ * - Reports
+ * - Dashboard statistics
  */
 
 const express = require("express");
@@ -11,6 +13,7 @@ const router = express.Router();
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+
 const {
   createUser,
   createStore,
@@ -25,7 +28,11 @@ const {
   getUserById
 } = require("../controllers/adminController");
 
-// Admin creates a user (user or owner)
+/* ======================================================
+   USER MANAGEMENT
+====================================================== */
+
+// Create user (role: user / owner)
 router.post(
   "/users",
   authMiddleware,
@@ -33,15 +40,7 @@ router.post(
   createUser
 );
 
-// Admin creates a store and assigns an owner
-router.post(
-  "/stores",
-  authMiddleware,
-  roleMiddleware("admin"),
-  createStore
-);
-
-// Admin fetches all users
+// Get all users
 router.get(
   "/users",
   authMiddleware,
@@ -49,14 +48,15 @@ router.get(
   getAllUsers
 );
 
-// Admin fetches all stores
+// Get user details by ID
 router.get(
-  "/stores",
+  "/users/:id",
   authMiddleware,
   roleMiddleware("admin"),
-  getAllStores
+  getUserById
 );
 
+// Delete user
 router.delete(
   "/users/:id",
   authMiddleware,
@@ -64,14 +64,7 @@ router.delete(
   deleteUser
 );
 
-router.delete(
-  "/stores/:id",
-  authMiddleware,
-  roleMiddleware("admin"),
-  deleteStore
-);
-
-// Change user role
+// Change user role (user ↔ owner)
 router.patch(
   "/users/:id/role",
   authMiddleware,
@@ -79,7 +72,39 @@ router.patch(
   changeUserRole
 );
 
-// Download users report
+/* ======================================================
+   STORE MANAGEMENT
+====================================================== */
+
+// Create store and assign owner
+router.post(
+  "/stores",
+  authMiddleware,
+  roleMiddleware("admin"),
+  createStore
+);
+
+// Get all stores
+router.get(
+  "/stores",
+  authMiddleware,
+  roleMiddleware("admin"),
+  getAllStores
+);
+
+// Delete store
+router.delete(
+  "/stores/:id",
+  authMiddleware,
+  roleMiddleware("admin"),
+  deleteStore
+);
+
+/* ======================================================
+   REPORTS
+====================================================== */
+
+// Download users report (CSV)
 router.get(
   "/reports/users",
   authMiddleware,
@@ -87,7 +112,7 @@ router.get(
   getUsersReport
 );
 
-// Download stores report
+// Download stores report (CSV)
 router.get(
   "/reports/stores",
   authMiddleware,
@@ -95,18 +120,16 @@ router.get(
   getStoresReport
 );
 
-router.get(
-  "/users/:id",
-  authMiddleware,
-  roleMiddleware("admin"),
-  getUserById
-);
+/* ======================================================
+   DASHBOARD
+====================================================== */
 
+// Admin dashboard summary
 router.get(
-  "/users/:id",
+  "/dashboard",
   authMiddleware,
   roleMiddleware("admin"),
-  getUserById
+  getAdminDashboard
 );
 
 module.exports = router;

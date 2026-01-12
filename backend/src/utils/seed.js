@@ -1,21 +1,23 @@
 /**
  * seed.js
- * -------
- * Handles database schema creation and initial seed data.
- * - Creates required tables if they do not exist
- * - Ensures reset-password columns exist (SQLite-safe)
- * - Seeds a default admin user
+ * ------------------------------------------------
+ * Database initialization & seeding script.
+ *
+ * Responsibilities:
+ * - Create required tables if they do not exist
+ * - Safely ensure reset-password columns exist
+ * - Seed a default admin account (runs once)
  */
 
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 
-/**
- * Create database tables
- */
+/* ======================================================
+   CREATE DATABASE TABLES
+====================================================== */
 const createTables = () => {
   db.serialize(() => {
-    // -------------------- USERS TABLE --------------------
+    /* -------------------- USERS TABLE -------------------- */
     db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,11 +31,14 @@ const createTables = () => {
       )
     `);
 
-    // Ensure reset-password columns exist (SQLite-safe)
+    /**
+     * SQLite does not support IF NOT EXISTS for ALTER TABLE.
+     * These statements are intentionally silent if columns already exist.
+     */
     db.run(`ALTER TABLE users ADD COLUMN reset_token TEXT`, () => {});
     db.run(`ALTER TABLE users ADD COLUMN reset_token_expiry INTEGER`, () => {});
 
-    // -------------------- STORES TABLE --------------------
+    /* -------------------- STORES TABLE -------------------- */
     db.run(`
       CREATE TABLE IF NOT EXISTS stores (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +50,7 @@ const createTables = () => {
       )
     `);
 
-    // -------------------- RATINGS TABLE --------------------
+    /* -------------------- RATINGS TABLE -------------------- */
     db.run(`
       CREATE TABLE IF NOT EXISTS ratings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,45 +64,47 @@ const createTables = () => {
       )
     `);
 
-    console.log("✅ Tables created or already exist");
+    console.log("✅ Database tables created or already exist");
   });
 };
 
-/**
- * Seed default admin account (runs only once)
- */
+/* ======================================================
+   SEED DEFAULT ADMIN USER
+====================================================== */
 const seedAdmin = async () => {
-  const adminEmail = "admin@store.com";
+  const ADMIN_EMAIL = "admin@store.com";
+  const ADMIN_PASSWORD = "Admin@123";
 
   db.get(
-    "SELECT id FROM users WHERE email = ?",
-    [adminEmail],
-    async (err, row) => {
+    `SELECT id FROM users WHERE email = ?`,
+    [ADMIN_EMAIL],
+    async (err, admin) => {
       if (err) {
-        console.error("❌ Error checking admin:", err.message);
+        console.error("❌ Failed to check admin user:", err.message);
         return;
       }
 
-      if (!row) {
-        const hashedPassword = await bcrypt.hash("Admin@123", 10);
+      // Create admin only if it does not exist
+      if (!admin) {
+        const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
 
         db.run(
           `
           INSERT INTO users (name, email, password, role)
           VALUES (?, ?, ?, ?)
           `,
-          ["System Admin", adminEmail, hashedPassword, "admin"]
+          ["System Admin", ADMIN_EMAIL, hashedPassword, "admin"]
         );
 
-        console.log("✅ Default admin created");
+        console.log("✅ Default admin account created");
       }
     }
   );
 };
 
-/**
- * Initialize database
- */
+/* ======================================================
+   DATABASE INITIALIZATION
+====================================================== */
 const seedDatabase = async () => {
   createTables();
   await seedAdmin();

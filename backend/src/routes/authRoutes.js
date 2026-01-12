@@ -1,11 +1,12 @@
 /**
  * authRoutes.js
- * -------------
+ * ------------------------------------------------
  * Authentication-related routes:
- * - Signup
- * - Login
- * - Forgot / Reset password
- * - Change password (authenticated)
+ * - User signup
+ * - Login (admin / user / owner)
+ * - Forgot password
+ * - Reset password
+ * - Change password (authenticated users)
  */
 
 const express = require("express");
@@ -20,13 +21,31 @@ const {
   changePassword
 } = require("../controllers/authController");
 
-// Public authentication routes
+/* ======================================================
+   PUBLIC AUTH ROUTES
+====================================================== */
+
+// Register a new user (role = user)
 router.post("/signup", signup);
+
+// Login for all roles
 router.post("/login", login);
+
+// Generate password reset token
 router.post("/forgot-password", forgotPassword);
+
+// Reset password using token
 router.post("/reset-password", resetPassword);
 
-// Protected route (requires authentication)
-router.patch("/change-password", authMiddleware, changePassword);
+/* ======================================================
+   PROTECTED AUTH ROUTES
+====================================================== */
+
+// Change password (requires authentication)
+router.patch(
+  "/change-password",
+  authMiddleware,
+  changePassword
+);
 
 module.exports = router;

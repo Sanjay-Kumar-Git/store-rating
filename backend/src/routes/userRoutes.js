@@ -1,9 +1,9 @@
 /**
  * userRoutes.js
- * -------------
+ * ------------------------------------------------
  * User-only routes:
- * - View stores with average ratings
- * - Rate or update store ratings
+ * - View all stores with average ratings
+ * - Submit or update store ratings
  */
 
 const express = require("express");
@@ -16,7 +16,11 @@ const {
   rateStore
 } = require("../controllers/userController");
 
-// Get all stores with average ratings
+/* ======================================================
+   STORE LISTING
+====================================================== */
+
+// Fetch all stores with average rating & user's rating
 router.get(
   "/stores",
   authMiddleware,
@@ -24,7 +28,11 @@ router.get(
   getStores
 );
 
-// Rate or update rating for a store
+/* ======================================================
+   STORE RATING
+====================================================== */
+
+// Submit or update rating for a store
 router.post(
   "/ratings",
   authMiddleware,

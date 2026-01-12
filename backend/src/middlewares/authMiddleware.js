@@ -1,7 +1,12 @@
 /**
  * authMiddleware.js
- * -----------------
- * Verifies JWT token and attaches decoded user data to the request.
+ * ------------------------------------------------
+ * JWT authentication middleware.
+ *
+ * - Verifies the Authorization token
+ * - Decodes user information from JWT
+ * - Attaches user data to req.user
+ *
  * Used to protect authenticated routes.
  */
 
@@ -9,28 +14,35 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-/**
- * Authentication middleware
- */
+/* ======================================================
+   AUTHENTICATION MIDDLEWARE
+====================================================== */
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  // Check for Authorization header
+  // Ensure Authorization header exists
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Authorization token missing" });
+    return res.status(401).json({
+      message: "Authorization token missing"
+    });
   }
 
+  // Extract token from header
   const token = authHeader.split(" ")[1];
 
   try {
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
+    // Verify and decode JWT
+    const decodedUser = jwt.verify(token, JWT_SECRET);
 
-    // Attach user data to request (id, role)
-    req.user = decoded;
+    // Attach decoded user data to request
+    // Example: { id, role, iat, exp }
+    req.user = decodedUser;
+
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid or expired token"
+    });
   }
 };
 

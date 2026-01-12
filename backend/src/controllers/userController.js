@@ -1,15 +1,22 @@
 /**
  * userController.js
- * -----------------
+ * ------------------------------------------------
  * Handles user-facing operations:
- * - View stores with average ratings
- * - Rate or update rating for a store
+ * - View all stores with average ratings
+ * - View user's own rating (if any)
+ * - Submit or update store ratings
  */
 
 const db = require("../config/db");
 
+/* ======================================================
+   GET STORES (WITH AVERAGE + USER RATING)
+====================================================== */
 /**
- * Get all stores with their average rating
+ * Returns:
+ * - Store details
+ * - Overall average rating
+ * - Logged-in user's rating (if exists)
  */
 exports.getStores = (req, res) => {
   const userId = req.user.id;
@@ -30,72 +37,84 @@ exports.getStores = (req, res) => {
     GROUP BY s.id
   `;
 
-  db.all(query, [userId], (err, rows) => {
+  db.all(query, [userId], (err, stores) => {
     if (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Failed to fetch stores" });
+      console.error("Error fetching stores:", err);
+      return res.status(500).json({
+        message: "Failed to fetch stores"
+      });
     }
-    res.json(rows);
+
+    res.json(stores);
   });
 };
 
-
-
+/* ======================================================
+   RATE / UPDATE STORE RATING
+====================================================== */
 /**
- * Rate a store or update existing rating
+ * Rules:
  * - Rating must be between 1 and 5
  * - One rating per user per store
+ * - Existing rating will be updated
  */
 exports.rateStore = (req, res) => {
   const userId = req.user.id;
   const { storeId, rating } = req.body;
 
-  if (!storeId || !rating) {
-    return res.status(400).json({ message: "Store ID and rating required" });
+  if (!storeId || rating === undefined) {
+    return res.status(400).json({
+      message: "Store ID and rating are required"
+    });
   }
 
   if (rating < 1 || rating > 5) {
-    return res.status(400).json({ message: "Rating must be between 1 and 5" });
+    return res.status(400).json({
+      message: "Rating must be between 1 and 5"
+    });
   }
 
-  // Check if user already rated this store
-  db.get(
-    `
-    SELECT id FROM ratings
+  /* -----------------------------------------------
+     Check if user already rated this store
+  ------------------------------------------------ */
+  const checkQuery = `
+    SELECT id
+    FROM ratings
     WHERE user_id = ? AND store_id = ?
-    `,
-    [userId, storeId],
-    (err, row) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to rate store" });
-      }
+  `;
 
-      if (row) {
-        // Update existing rating
-        db.run(
-          `
-          UPDATE ratings
-          SET rating = ?, created_at = CURRENT_TIMESTAMP
-          WHERE user_id = ? AND store_id = ?
-          `,
-          [rating, userId, storeId],
-          () => {
-            res.status(200).json({ message: "Rating updated successfully" });
-          }
-        );
-      } else {
-        // Insert new rating
-        db.run(
-          `
-          INSERT INTO ratings (user_id, store_id, rating)
-          VALUES (?, ?, ?)
-          `,
-          [userId, storeId, rating],
-          () => {
-            res.status(201).json({ message: "Rating submitted successfully" });
-          }
-        );
-      }
+  db.get(checkQuery, [userId, storeId], (err, existingRating) => {
+    if (err) {
+      return res.status(500).json({
+        message: "Failed to process rating"
+      });
     }
-  );
+
+    // Update existing rating
+    if (existingRating) {
+      const updateQuery = `
+        UPDATE ratings
+        SET rating = ?, created_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND store_id = ?
+      `;
+
+      db.run(updateQuery, [rating, userId, storeId], () => {
+        res.json({ message: "Rating updated successfully" });
+      });
+
+      return;
+    }
+
+    // Insert new rating
+    const insertQuery = `
+      INSERT INTO ratings (user_id, store_id, rating)
+      VALUES (?, ?, ?)
+    `;
+
+    db.run(insertQuery, [userId, storeId, rating], () => {
+      res.status(201).json({
+        message: "Rating submitted successfully"
+      });
+    });
+  });
 };

@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import { API_BASE } from "../utils/api";
 
-/**
- * Reusable Input Component (Memoized)
- */
+/* ======================================================
+   REUSABLE INPUT FIELD (MEMOIZED)
+====================================================== */
 const InputField = React.memo(
   ({
     label,
@@ -29,26 +29,28 @@ const InputField = React.memo(
     icon: Icon,
   }) => {
     const [showPassword, setShowPassword] = useState(false);
-    const isPasswordField = type === "password";
-    const inputType = isPasswordField && showPassword ? "text" : type;
-    const hasError = error && touched;
+
+    const isPassword = type === "password";
+    const inputType = isPassword && showPassword ? "text" : type;
+    const hasError = Boolean(error && touched);
 
     return (
-      <div className="flex flex-col space-y-1.5 w-full">
+      <div className="flex w-full flex-col space-y-1.5">
         <label
           htmlFor={name}
-          className="text-[11px] font-bold uppercase tracking-widest text-gray-400 ml-1"
+          className="ml-1 text-[11px] font-bold uppercase tracking-widest text-gray-400"
         >
           {label}
         </label>
 
-        <div className="relative group">
+        <div className="group relative">
           <div
-            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
-              hasError
-                ? "text-red-400"
-                : "text-gray-400 group-focus-within:text-blue-600"
-            }`}
+            className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors
+              ${
+                hasError
+                  ? "text-red-400"
+                  : "text-gray-400 group-focus-within:text-blue-600"
+              }`}
           >
             <Icon size={18} />
           </div>
@@ -61,7 +63,7 @@ const InputField = React.memo(
             value={value}
             onChange={onChange}
             onBlur={onBlur}
-            className={`w-full pl-10 pr-10 py-3 rounded-xl border transition-all duration-200 outline-none font-medium
+            className={`w-full rounded-xl border py-3 pl-10 pr-10 font-medium outline-none transition-all
               ${
                 hasError
                   ? "border-red-500 bg-red-50/50 focus:ring-4 focus:ring-red-500/10"
@@ -70,22 +72,23 @@ const InputField = React.memo(
             `}
           />
 
-          {isPasswordField && (
+          {isPassword && (
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute cursor-pointer right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-              tabIndex="-1"
+              tabIndex={-1}
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-gray-600 transition-colors"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           )}
         </div>
 
-        <div className="min-h-[1.25rem] ml-1">
+        <div className="ml-1 min-h-[1.25rem]">
           {hasError && (
-            <span className="text-xs text-red-500 font-medium flex items-center gap-1">
-              <AlertCircle size={12} /> {error}
+            <span className="flex items-center gap-1 text-xs font-medium text-red-500">
+              <AlertCircle size={12} />
+              {error}
             </span>
           )}
         </div>
@@ -96,19 +99,23 @@ const InputField = React.memo(
 
 InputField.displayName = "InputField";
 
+/* ======================================================
+   LOGIN PAGE
+====================================================== */
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  /* ---------------- STATE ---------------- */
   const [form, setForm] = useState({ email: "", password: "" });
   const [touched, setTouched] = useState({});
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const successMsg = location.state?.message;
+  const successMessage = location.state?.message;
 
-  /* ✅ AUTH GUARD: block /login if already logged in */
+  /* ---------------- AUTH GUARD ---------------- */
   useEffect(() => {
     const token = Cookies.get("token");
     const role = Cookies.get("role");
@@ -118,35 +125,42 @@ const Login = () => {
     }
   }, [navigate]);
 
-  const getValidationError = useCallback((name, value) => {
+  /* ---------------- VALIDATION ---------------- */
+  const validateField = useCallback((name, value) => {
     if (name === "email") {
-      return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-        ? "Invalid email address"
-        : "";
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+        ? ""
+        : "Invalid email address";
     }
+
     if (name === "password") {
-      return value.length < 1 ? "Password is required" : "";
+      return value ? "" : "Password is required";
     }
+
     return "";
   }, []);
 
+  /* ---------------- HANDLERS ---------------- */
   const handleChange = (e) => {
     const { name, value } = e.target;
+
     setForm((prev) => ({ ...prev, [name]: value }));
+
     if (touched[name]) {
       setErrors((prev) => ({
         ...prev,
-        [name]: getValidationError(name, value),
+        [name]: validateField(name, value),
       }));
     }
   };
 
   const handleBlur = (e) => {
     const { name, value } = e.target;
+
     setTouched((prev) => ({ ...prev, [name]: true }));
     setErrors((prev) => ({
       ...prev,
-      [name]: getValidationError(name, value),
+      [name]: validateField(name, value),
     }));
   };
 
@@ -154,13 +168,13 @@ const Login = () => {
     e.preventDefault();
     setServerError("");
 
-    const formErrors = {
-      email: getValidationError("email", form.email),
-      password: getValidationError("password", form.password),
+    const validationErrors = {
+      email: validateField("email", form.email),
+      password: validateField("password", form.password),
     };
 
-    if (formErrors.email || formErrors.password) {
-      setErrors(formErrors);
+    if (validationErrors.email || validationErrors.password) {
+      setErrors(validationErrors);
       setTouched({ email: true, password: true });
       return;
     }
@@ -168,23 +182,24 @@ const Login = () => {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
+      const data = await response.json();
+      if (!response.ok) {
         throw new Error(data.message || "Invalid email or password");
       }
 
-      /* ✅ COOKIE FIX (local + prod safe) */
+      /* ---------------- COOKIE SETUP ---------------- */
       Cookies.set("token", data.token, {
         expires: 7,
         sameSite: "strict",
         secure: import.meta.env.PROD,
       });
+
       Cookies.set("role", data.role, {
         expires: 7,
         sameSite: "strict",
@@ -198,35 +213,41 @@ const Login = () => {
     }
   };
 
+  /* ---------------- UI ---------------- */
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC] px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="bg-white p-10 rounded-[2rem] shadow-2xl border border-gray-100">
-          <header className="text-center mb-10">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl mb-4">
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-10 shadow-2xl">
+          
+          {/* HEADER */}
+          <header className="mb-10 text-center">
+            <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
               <LogIn size={28} />
             </div>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">
+            <h1 className="mb-2 text-3xl font-black text-gray-900">
               Welcome Back
             </h1>
-            <p className="text-gray-500 font-medium">
+            <p className="font-medium text-gray-500">
               Please enter your details to sign in.
             </p>
           </header>
 
-          {successMsg && !serverError && (
-            <div className="bg-green-50 border border-green-100 text-green-600 p-4 mb-6 rounded-2xl text-sm font-semibold">
-              {successMsg}
+          {/* SUCCESS MESSAGE */}
+          {successMessage && !serverError && (
+            <div className="mb-6 rounded-2xl border border-green-100 bg-green-50 p-4 text-sm font-semibold text-green-600">
+              {successMessage}
             </div>
           )}
 
+          {/* ERROR MESSAGE */}
           {serverError && (
-            <div className="flex items-center gap-3 bg-red-50 border border-red-100 text-red-600 p-4 mb-6 rounded-2xl text-sm font-semibold">
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-600">
               <AlertCircle size={20} />
-              <p>{serverError}</p>
+              {serverError}
             </div>
           )}
 
+          {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <InputField
               label="Email Address"
@@ -258,7 +279,7 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => navigate("/forgot-password")}
-                className="text-xs cursor-pointer font-bold text-blue-600 hover:text-blue-700"
+                className="cursor-pointer text-xs font-bold text-blue-600 hover:text-blue-700"
               >
                 Forgot Password?
               </button>
@@ -267,27 +288,28 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className={`flex cursor-pointer items-center justify-center gap-2 w-full py-4 rounded-2xl font-bold text-white transition-all
+              className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white transition-all
                 ${
                   loading
-                    ? "bg-blue-400 cursor-wait"
-                    : "bg-blue-600 hover:bg-blue-700 active:scale-[0.97] shadow-xl shadow-blue-600/20"
+                    ? "cursor-wait bg-blue-400"
+                    : "bg-blue-600 shadow-xl shadow-blue-600/20 hover:bg-blue-700 active:scale-[0.97]"
                 }`}
             >
               {loading ? (
-                <Loader2 className="animate-spin" size={20} />
+                <Loader2 size={20} className="animate-spin" />
               ) : (
                 "Log In"
               )}
             </button>
           </form>
 
-          <footer className="mt-10 pt-8 border-t border-gray-50 text-center">
-            <p className="text-sm text-gray-500 font-medium">
+          {/* FOOTER */}
+          <footer className="mt-10 border-t border-gray-50 pt-8 text-center">
+            <p className="text-sm font-medium text-gray-500">
               New to the platform?{" "}
               <button
                 onClick={() => navigate("/signup")}
-                className="text-blue-600 cursor-pointer font-bold hover:text-blue-700"
+                className="cursor-pointer font-bold text-blue-600 hover:text-blue-700"
               >
                 Create Account
               </button>

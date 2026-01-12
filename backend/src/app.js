@@ -1,39 +1,61 @@
 /**
  * app.js
- * -------
- * Core Express application configuration.
- * Responsible for middleware setup, routes, and health checks.
+ * ------------------------------------------------
+ * Core Express application setup.
+ *
+ * Responsibilities:
+ * - Initialize database and seed data
+ * - Configure global middleware
+ * - Register API routes
+ * - Provide health check endpoint
  */
 
 const express = require("express");
 const cors = require("cors");
 
-// Routes
+// Import route handlers
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const userRoutes = require("./routes/userRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 
-// Database & seed
+// Initialize database & seed data
 require("./config/db");
 const seedDatabase = require("./utils/seed");
 
 const app = express();
 
-// Initialize database schema and seed data
+/* ======================================================
+   DATABASE INITIALIZATION
+====================================================== */
+
+// Create tables and seed default admin (runs once)
 seedDatabase();
 
-// Global middlewares
+/* ======================================================
+   GLOBAL MIDDLEWARE
+====================================================== */
+
+// Enable CORS for frontend-backend communication
 app.use(cors());
+
+// Parse incoming JSON requests
 app.use(express.json());
 
-// API routes
+/* ======================================================
+   API ROUTES
+====================================================== */
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/owner", ownerRoutes);
 
-// Health check (used by Render / monitoring)
+/* ======================================================
+   HEALTH CHECK
+====================================================== */
+
+// Used by Render / monitoring services
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     status: "OK",

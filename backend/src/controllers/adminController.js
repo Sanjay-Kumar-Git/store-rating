@@ -1,17 +1,20 @@
 /**
  * adminController.js
- * ------------------
- * Handles admin-only operations:
+ * ------------------------------------------------
+ * Admin-only operations:
  * - Create users (user / owner)
  * - Create stores and assign owners
+ * - Manage users, roles, and stores
+ * - Generate reports
+ * - Dashboard statistics
  */
 
 const db = require("../config/db");
 const bcrypt = require("bcrypt");
 
-/**
- * Admin creates a user (role: user or owner)
- */
+/* ======================================================
+   CREATE USER (USER / OWNER)
+====================================================== */
 exports.createUser = async (req, res) => {
   const { name, email, password, address, role } = req.body;
 
@@ -26,18 +29,20 @@ exports.createUser = async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    db.run(
-      `
+    const query = `
       INSERT INTO users (name, email, password, address, role)
       VALUES (?, ?, ?, ?, ?)
-      `,
+    `;
+
+    db.run(
+      query,
       [name, email, hashedPassword, address || "", role],
       function (err) {
         if (err) {
           if (err.message.includes("UNIQUE")) {
             return res.status(409).json({ message: "Email already exists" });
           }
-          return res.status(500).json({ message: "User creation failed" });
+          return res.status(500).json({ message: "Failed to create user" });
         }
 
         res.status(201).json({
@@ -47,14 +52,14 @@ exports.createUser = async (req, res) => {
         });
       }
     );
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Server error" });
   }
 };
 
-/**
- * Admin creates a store and assigns it to an owner
- */
+/* ======================================================
+   CREATE STORE & ASSIGN OWNER
+====================================================== */
 exports.createStore = (req, res) => {
   const { name, email, address, ownerId } = req.body;
 
@@ -62,55 +67,49 @@ exports.createStore = (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  db.run(
-    `
+  const query = `
     INSERT INTO stores (name, email, address, owner_id)
     VALUES (?, ?, ?, ?)
-    `,
-    [name, email, address || "", ownerId],
-    function (err) {
-      if (err) {
-        if (err.message.includes("UNIQUE")) {
-          return res.status(409).json({ message: "Store email already exists" });
-        }
-        return res.status(500).json({ message: "Store creation failed" });
-      }
+  `;
 
-      res.status(201).json({
-        message: "Store created successfully",
-        storeId: this.lastID
-      });
+  db.run(query, [name, email, address || "", ownerId], function (err) {
+    if (err) {
+      if (err.message.includes("UNIQUE")) {
+        return res.status(409).json({ message: "Store email already exists" });
+      }
+      return res.status(500).json({ message: "Failed to create store" });
     }
-  );
+
+    res.status(201).json({
+      message: "Store created successfully",
+      storeId: this.lastID
+    });
+  });
 };
 
-
-/**
- * Get all users (admin only)
- */
+/* ======================================================
+   GET ALL USERS
+====================================================== */
 exports.getAllUsers = (req, res) => {
-  db.all(
-    `
+  const query = `
     SELECT id, name, email, address, role
     FROM users
     ORDER BY id DESC
-    `,
-    [],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to fetch users" });
-      }
-      res.status(200).json(rows);
+  `;
+
+  db.all(query, [], (err, users) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to fetch users" });
     }
-  );
+    res.json(users);
+  });
 };
 
-/**
- * Get all stores with average ratings (admin only)
- */
+/* ======================================================
+   GET ALL STORES WITH AVERAGE RATINGS
+====================================================== */
 exports.getAllStores = (req, res) => {
-  db.all(
-    `
+  const query = `
     SELECT 
       s.id,
       s.name,
@@ -121,117 +120,102 @@ exports.getAllStores = (req, res) => {
       u.name AS ownerName,
       u.email AS ownerEmail
     FROM stores s
-    LEFT JOIN ratings r ON s.id = r.store_id
+    LEFT JOIN ratings r ON r.store_id = s.id
     LEFT JOIN users u ON u.id = s.owner_id
     GROUP BY s.id
     ORDER BY s.id DESC
-    `,
-    [],
-    (err, rows) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to fetch stores" });
-      }
+  `;
 
-      // 👇 normalize response for frontend
-      const formatted = rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        address: row.address,
-        averageRating: row.averageRating,
-        owner: row.ownerId
-          ? {
-              id: row.ownerId,
-              name: row.ownerName,
-              email: row.ownerEmail
-            }
-          : null
-      }));
-
-      res.json(formatted);
+  db.all(query, [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to fetch stores" });
     }
-  );
+
+    const stores = rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      address: row.address,
+      averageRating: row.averageRating,
+      owner: row.ownerId
+        ? {
+            id: row.ownerId,
+            name: row.ownerName,
+            email: row.ownerEmail
+          }
+        : null
+    }));
+
+    res.json(stores);
+  });
 };
 
-
-/**
- * Admin deletes a user (user / owner)
- */
+/* ======================================================
+   DELETE USER (SAFE)
+====================================================== */
 exports.deleteUser = (req, res) => {
-  const adminId = req.user.id; // from authMiddleware
-  const userIdToDelete = req.params.id;
+  const adminId = Number(req.user.id);
+  const userId = Number(req.params.id);
 
-  // Prevent admin deleting themselves
-  if (parseInt(adminId) === parseInt(userIdToDelete)) {
+  if (adminId === userId) {
     return res.status(400).json({ message: "You cannot delete yourself" });
   }
 
-  // Check user existence and role
-  db.get(
-    `SELECT role FROM users WHERE id = ?`,
-    [userIdToDelete],
-    (err, user) => {
-      if (err) {
-        return res.status(500).json({ message: "Server error" });
-      }
+  db.get(`SELECT role FROM users WHERE id = ?`, [userId], (err, user) => {
+    if (err) return res.status(500).json({ message: "Server error" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Prevent deleting last admin
-      if (user.role === "admin") {
-        db.get(
-          `SELECT COUNT(*) AS count FROM users WHERE role = 'admin'`,
-          [],
-          (err, row) => {
-            if (row.count <= 1) {
-              return res.status(400).json({ message: "Cannot delete last admin" });
-            }
-            deleteUserNow();
+    // Prevent deleting the last admin
+    if (user.role === "admin") {
+      db.get(
+        `SELECT COUNT(*) AS count FROM users WHERE role = 'admin'`,
+        [],
+        (err, result) => {
+          if (result.count <= 1) {
+            return res
+              .status(400)
+              .json({ message: "Cannot delete the last admin" });
           }
-        );
-      } else {
-        deleteUserNow();
-      }
-    }
-  );
-
-  function deleteUserNow() {
-    db.run(
-      `DELETE FROM users WHERE id = ?`,
-      [userIdToDelete],
-      function (err) {
-        if (err) {
-          return res.status(500).json({ message: "Failed to delete user" });
+          deleteUser();
         }
-        res.status(200).json({ message: "User deleted successfully" });
+      );
+    } else {
+      deleteUser();
+    }
+  });
+
+  function deleteUser() {
+    db.run(`DELETE FROM users WHERE id = ?`, [userId], function (err) {
+      if (err) {
+        return res.status(500).json({ message: "Failed to delete user" });
       }
-    );
+      res.json({ message: "User deleted successfully" });
+    });
   }
 };
 
+/* ======================================================
+   DELETE STORE
+====================================================== */
 exports.deleteStore = (req, res) => {
   const { id } = req.params;
 
-  db.run(
-    `DELETE FROM stores WHERE id = ?`,
-    [id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ message: "Failed to delete store" });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ message: "Store not found" });
-      }
-
-      res.json({ message: "Store deleted successfully" });
+  db.run(`DELETE FROM stores WHERE id = ?`, [id], function (err) {
+    if (err) {
+      return res.status(500).json({ message: "Failed to delete store" });
     }
-  );
+
+    if (this.changes === 0) {
+      return res.status(404).json({ message: "Store not found" });
+    }
+
+    res.json({ message: "Store deleted successfully" });
+  });
 };
 
-
+/* ======================================================
+   CHANGE USER ROLE
+====================================================== */
 exports.changeUserRole = (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -257,9 +241,9 @@ exports.changeUserRole = (req, res) => {
   );
 };
 
-/**
- * Generate USERS CSV report
- */
+/* ======================================================
+   USERS CSV REPORT
+====================================================== */
 exports.getUsersReport = (req, res) => {
   const query = `
     SELECT name, email, role, address
@@ -267,25 +251,28 @@ exports.getUsersReport = (req, res) => {
     ORDER BY id DESC
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, [], (err, users) => {
     if (err) {
       return res.status(500).json({ message: "Failed to generate users report" });
     }
 
     let csv = "Name,Email,Role,Address\n";
-    rows.forEach(r => {
-      csv += `"${r.name}","${r.email}","${r.role}","${r.address || ""}"\n`;
+    users.forEach(u => {
+      csv += `"${u.name}","${u.email}","${u.role}","${u.address || ""}"\n`;
     });
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=users-report.csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=users-report.csv"
+    );
     res.send(csv);
   });
 };
 
-/**
- * Generate STORES CSV report
- */
+/* ======================================================
+   STORES CSV REPORT
+====================================================== */
 exports.getStoresReport = (req, res) => {
   const query = `
     SELECT 
@@ -300,23 +287,30 @@ exports.getStoresReport = (req, res) => {
     ORDER BY s.id DESC
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, [], (err, stores) => {
     if (err) {
-      return res.status(500).json({ message: "Failed to generate stores report" });
+      return res
+        .status(500)
+        .json({ message: "Failed to generate stores report" });
     }
 
     let csv = "Store Name,Owner Name,Owner Email,Average Rating\n";
-    rows.forEach(r => {
-      csv += `"${r.storeName}","${r.ownerName || ""}","${r.ownerEmail || ""}","${r.averageRating || 0}"\n`;
+    stores.forEach(s => {
+      csv += `"${s.storeName}","${s.ownerName || ""}","${s.ownerEmail || ""}","${s.averageRating || 0}"\n`;
     });
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", "attachment; filename=stores-report.csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=stores-report.csv"
+    );
     res.send(csv);
   });
 };
 
-
+/* ======================================================
+   ADMIN DASHBOARD STATS
+====================================================== */
 exports.getAdminDashboard = (req, res) => {
   const queries = {
     users: "SELECT COUNT(*) AS totalUsers FROM users",
@@ -331,7 +325,8 @@ exports.getAdminDashboard = (req, res) => {
       if (err) return res.status(500).json({ message: "Failed to count stores" });
 
       db.get(queries.ratings, [], (err, ratings) => {
-        if (err) return res.status(500).json({ message: "Failed to count ratings" });
+        if (err)
+          return res.status(500).json({ message: "Failed to count ratings" });
 
         res.json({
           totalUsers: users.totalUsers,
@@ -343,6 +338,9 @@ exports.getAdminDashboard = (req, res) => {
   });
 };
 
+/* ======================================================
+   GET USER BY ID (ADMIN VIEW)
+====================================================== */
 exports.getUserById = (req, res) => {
   const userId = req.params.id;
 
@@ -353,20 +351,13 @@ exports.getUserById = (req, res) => {
   `;
 
   db.get(userQuery, [userId], (err, user) => {
-    if (err) {
-      return res.status(500).json({ message: "Failed to fetch user" });
-    }
+    if (err) return res.status(500).json({ message: "Failed to fetch user" });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // If NOT owner → return basic info
     if (user.role !== "owner") {
       return res.json({ user });
     }
 
-    // If OWNER → fetch store + rating
     const storeQuery = `
       SELECT 
         s.id,
@@ -381,9 +372,8 @@ exports.getUserById = (req, res) => {
     `;
 
     db.get(storeQuery, [userId], (err, store) => {
-      if (err) {
+      if (err)
         return res.status(500).json({ message: "Failed to fetch store" });
-      }
 
       res.json({
         user,
