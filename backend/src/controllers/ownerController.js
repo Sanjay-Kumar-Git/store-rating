@@ -18,63 +18,57 @@ const db = require("../config/db");
 exports.getOwnerDashboard = (req, res) => {
   const ownerId = req.user.id;
 
-  // Fetch store owned by this owner
-  db.get(
-    `
+  // 1. Get store owned by this owner
+  const storeQuery = `
     SELECT id, name, address
     FROM stores
     WHERE owner_id = ?
-    `,
-    [ownerId],
-    (err, store) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to fetch store" });
-      }
+  `;
 
-      if (!store) {
-        return res.status(404).json({ message: "No store found for owner" });
-      }
-
-      // Fetch all ratings for the store
-      db.all(
-        `
-        SELECT 
-          users.name AS userName,
-          ratings.rating
-        FROM ratings
-        JOIN users ON ratings.user_id = users.id
-        WHERE ratings.store_id = ?
-        `,
-        [store.id],
-        (err, ratings) => {
-          if (err) {
-            return res.status(500).json({ message: "Failed to fetch ratings" });
-          }
-
-          // Calculate average rating for the store
-          db.get(
-            `
-            SELECT AVG(rating) AS averageRating
-            FROM ratings
-            WHERE store_id = ?
-            `,
-            [store.id],
-            (err, avgRow) => {
-              if (err) {
-                return res
-                  .status(500)
-                  .json({ message: "Failed to calculate average rating" });
-              }
-
-              res.status(200).json({
-                store,
-                averageRating: avgRow.averageRating,
-                ratings
-              });
-            }
-          );
-        }
-      );
+  db.get(storeQuery, [ownerId], (err, store) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to fetch store" });
     }
-  );
+
+    if (!store) {
+      return res.status(404).json({ message: "No store found for this owner" });
+    }
+
+    // 2. Get ratings + usernames
+    const ratingsQuery = `
+      SELECT 
+        u.name AS userName,
+        r.rating
+      FROM ratings r
+      JOIN users u ON u.id = r.user_id
+      WHERE r.store_id = ?
+      ORDER BY r.created_at DESC
+    `;
+
+    db.all(ratingsQuery, [store.id], (err, ratings) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to fetch ratings" });
+      }
+
+      // 3. Get average rating
+      const avgQuery = `
+        SELECT ROUND(AVG(rating), 1) AS averageRating
+        FROM ratings
+        WHERE store_id = ?
+      `;
+
+      db.get(avgQuery, [store.id], (err, avg) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to calculate average rating" });
+        }
+
+        res.json({
+          store,
+          averageRating: avg.averageRating || 0,
+          ratings
+        });
+      });
+    });
+  });
 };
+

@@ -12,25 +12,34 @@ const db = require("../config/db");
  * Get all stores with their average rating
  */
 exports.getStores = (req, res) => {
+  const userId = req.user.id;
+
   const query = `
-    SELECT 
-      stores.id,
-      stores.name,
-      stores.address,
-      AVG(ratings.rating) AS averageRating
-    FROM stores
-    LEFT JOIN ratings ON stores.id = ratings.store_id
-    GROUP BY stores.id
+    SELECT
+      s.id,
+      s.name,
+      s.address,
+      ROUND(AVG(r.rating), 1) AS averageRating,
+      ur.rating AS myRating
+    FROM stores s
+    LEFT JOIN ratings r
+      ON r.store_id = s.id
+    LEFT JOIN ratings ur
+      ON ur.store_id = s.id
+     AND ur.user_id = ?
+    GROUP BY s.id
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, [userId], (err, rows) => {
     if (err) {
+      console.error(err);
       return res.status(500).json({ message: "Failed to fetch stores" });
     }
-
-    res.status(200).json(rows);
+    res.json(rows);
   });
 };
+
+
 
 /**
  * Rate a store or update existing rating
